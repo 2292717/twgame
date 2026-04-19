@@ -1,39 +1,800 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="zh-CN">
 <head>
-    <title>TWGAME</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>⚽ 世界杯16强竞猜</title>
+  <style>
+    /* ===== 重置 & 基础 ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy:   #1a3a5c;
+      --blue:   #2d6da3;
+      --gold:   #f39c12;
+      --green:  #27ae60;
+      --red:    #e74c3c;
+      --bg:     #f0f4f8;
+      --card:   #ffffff;
+      --text:   #1a2e44;
+      --muted:  #8a9bb0;
+      --radius: 16px;
+      --shadow: 0 2px 16px rgba(0,0,0,0.09);
+    }
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Segoe UI', sans-serif;
+      color: var(--text);
+      font-size: 15px;
+    }
+
+    /* ===== 顶部导航 ===== */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: linear-gradient(135deg, var(--navy), var(--blue));
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      height: 56px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+    }
+    .topbar-title { font-size: 18px; font-weight: 700; letter-spacing: 1px; }
+    .topbar-sub   { font-size: 12px; opacity: .75; margin-top: 2px; }
+
+    /* ===== TabBar ===== */
+    .tabbar {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      height: 60px;
+      background: #fff;
+      display: flex;
+      border-top: 1px solid #e8ecf0;
+      z-index: 100;
+      box-shadow: 0 -2px 12px rgba(0,0,0,0.07);
+    }
+    .tab-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 11px;
+      transition: color .2s;
+      border: none;
+      background: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .tab-item.active { color: var(--navy); }
+    .tab-item .tab-icon { font-size: 22px; }
+
+    /* ===== 页面容器 ===== */
+    .page { display: none; padding: 14px 14px 80px; animation: fadeIn .2s ease; }
+    .page.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+    /* ===== 卡片 ===== */
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 18px;
+      margin-bottom: 14px;
+      box-shadow: var(--shadow);
+    }
+
+    /* ===== 昵称区域 ===== */
+    .nickname-card { text-align: center; padding: 32px 20px; }
+    .nickname-card .icon { font-size: 52px; margin-bottom: 10px; }
+    .nickname-card h2 { font-size: 20px; color: var(--navy); margin-bottom: 6px; }
+    .nickname-card p  { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+    .input-row { display: flex; gap: 10px; }
+    .input-row input {
+      flex: 1; border: 2px solid #dde3ec; border-radius: 50px;
+      padding: 10px 18px; font-size: 15px; outline: none;
+      transition: border-color .2s;
+    }
+    .input-row input:focus { border-color: var(--blue); }
+    .btn { cursor: pointer; border: none; border-radius: 50px; font-size: 14px; font-weight: 600; transition: opacity .15s, transform .1s; }
+    .btn:active { opacity: .8; transform: scale(.97); }
+    .btn-primary { background: linear-gradient(135deg, var(--navy), var(--blue)); color: #fff; padding: 10px 24px; }
+    .btn-success { background: linear-gradient(135deg, #27ae60, #2ecc71); color: #fff; padding: 10px 24px; }
+    .btn-danger  { background: linear-gradient(135deg, #c0392b, var(--red)); color: #fff; padding: 10px 24px; }
+    .btn-gray    { background: linear-gradient(135deg, #7f8c8d, #95a5a6); color: #fff; padding: 12px 40px; font-size: 15px; }
+
+    /* ===== 用户信息栏 ===== */
+    .user-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 18px; background: var(--card);
+      border-radius: var(--radius); margin-bottom: 14px;
+      box-shadow: var(--shadow);
+    }
+    .user-hello { font-size: 15px; font-weight: 700; color: var(--navy); }
+    .user-meta  { font-size: 12px; color: var(--muted); margin-top: 3px; }
+    .score-chip {
+      background: linear-gradient(135deg, #f39c12, #f1c40f);
+      color: #fff; border-radius: 50px; padding: 6px 16px;
+      display: flex; align-items: baseline; gap: 2px;
+    }
+    .score-chip .num  { font-size: 28px; font-weight: 800; line-height: 1; }
+    .score-chip .unit { font-size: 12px; opacity: .9; }
+    .tag-submitted { background: #e8f5e9; color: var(--green); border-radius: 50px; padding: 2px 10px; font-size: 12px; font-weight: 600; }
+    .tag-draft     { background: #fff3e0; color: #e67e22; border-radius: 50px; padding: 2px 10px; font-size: 12px; font-weight: 600; }
+
+    /* ===== 赛事标题 ===== */
+    .section-title { font-size: 15px; font-weight: 700; color: var(--navy); margin: 4px 2px 12px; }
+
+    /* ===== 比赛卡片 ===== */
+    .match-card {
+      background: var(--card); border-radius: var(--radius);
+      padding: 14px; margin-bottom: 12px;
+      box-shadow: var(--shadow);
+      border: 2px solid transparent;
+      transition: border-color .2s;
+    }
+    .match-card.picked   { border-color: var(--blue); }
+    .match-card.finished { background: #f9fafb; }
+
+    .match-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 10px;
+    }
+    .match-no { font-size: 12px; color: var(--muted); }
+    .result-chip {
+      background: var(--navy); color: #fff;
+      font-size: 11px; border-radius: 50px; padding: 2px 10px;
+    }
+    .pending-chip {
+      background: #f0f0f0; color: #bbb;
+      font-size: 11px; border-radius: 50px; padding: 2px 10px;
+    }
+
+    .team-row { display: flex; align-items: stretch; gap: 8px; }
+    .team-btn {
+      flex: 1; display: flex; flex-direction: column; align-items: center;
+      padding: 12px 6px; border-radius: 10px;
+      background: #f5f7fa; border: 2px solid #e8ecf0;
+      cursor: pointer; position: relative;
+      transition: all .2s; -webkit-tap-highlight-color: transparent;
+    }
+    .team-btn:hover  { background: #eef2f8; }
+    .team-btn.sel    { background: #e8f0fa; border-color: var(--blue); }
+    .team-btn.win    { background: #e8f5e9 !important; border-color: var(--green) !important; }
+    .team-btn.lose   { opacity: .45 !important; }
+    .team-btn .flag  { font-size: 22px; margin-bottom: 4px; }
+    .team-btn .name  { font-size: 14px; font-weight: 700; color: var(--navy); text-align: center; line-height: 1.3; }
+    .team-btn .check {
+      position: absolute; top: 5px; right: 8px;
+      color: var(--blue); font-size: 13px; font-weight: 800;
+    }
+    .vs-badge {
+      font-size: 12px; font-weight: 800; color: var(--red);
+      background: #fef9e7; border-radius: 6px; padding: 4px 8px;
+      align-self: center; flex-shrink: 0;
+    }
+
+    .guess-result { text-align: center; margin-top: 10px; font-size: 13px; }
+    .guess-correct { color: var(--green); }
+    .guess-wrong   { color: var(--red); }
+    .guess-miss    { color: var(--muted); }
+
+    /* ===== 提交按钮 ===== */
+    .submit-bar { display: flex; justify-content: center; padding: 10px 0 4px; }
+    .btn-submit-main {
+      width: 60%; padding: 14px; border-radius: 50px;
+      font-size: 16px; font-weight: 700; letter-spacing: 2px;
+      border: none; cursor: pointer; transition: opacity .15s, transform .1s;
+    }
+    .btn-submit-main:active { opacity: .85; transform: scale(.97); }
+    .btn-sub-blue  { background: linear-gradient(135deg, var(--navy), var(--blue)); color: #fff; }
+    .btn-sub-gray  { background: linear-gradient(135deg, #7f8c8d, #95a5a6); color: #fff; }
+
+    /* ===== 排行榜 ===== */
+    .rank-header {
+      background: linear-gradient(135deg, var(--navy), var(--blue));
+      border-radius: var(--radius); padding: 24px;
+      text-align: center; margin-bottom: 14px;
+      box-shadow: var(--shadow);
+    }
+    .rank-header h2 { font-size: 22px; font-weight: 800; color: #fff; margin-bottom: 4px; }
+    .rank-header p  { font-size: 13px; color: rgba(255,255,255,.8); }
+
+    .rank-item {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 18px; background: var(--card);
+      border-radius: var(--radius); margin-bottom: 10px;
+      box-shadow: var(--shadow);
+      border: 2px solid transparent;
+    }
+    .rank-item.me { border-color: var(--gold); background: #fffbf0; }
+
+    .rank-badge {
+      width: 44px; height: 44px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; font-weight: 800; flex-shrink: 0;
+    }
+    .rank-badge.r1 { background: #fff3cd; font-size: 28px; }
+    .rank-badge.r2 { background: #e8e8e8; font-size: 28px; }
+    .rank-badge.r3 { background: #fde8d8; font-size: 28px; }
+    .rank-badge.rn { background: #f0f4f8; color: #666; font-size: 16px; }
+
+    .rank-name  { flex: 1; }
+    .rank-nick  { font-size: 15px; font-weight: 700; color: var(--navy); }
+    .rank-me-tag{ color: var(--gold); font-size: 12px; font-weight: 700; margin-left: 4px; }
+    .rank-score { display: flex; align-items: baseline; gap: 2px; }
+    .rank-score .big  { font-size: 30px; font-weight: 800; color: var(--red); line-height: 1; }
+    .rank-score .deno { font-size: 13px; color: var(--muted); }
+
+    .empty-state {
+      text-align: center; padding: 60px 0;
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
+    }
+    .empty-state .eicon { font-size: 60px; }
+    .empty-state p { font-size: 14px; color: var(--muted); }
+
+    /* ===== 管理页 ===== */
+    .auth-card  { text-align: center; padding: 50px 24px; margin-top: 20px; }
+    .auth-icon  { font-size: 60px; margin-bottom: 12px; }
+    .auth-card h2 { font-size: 20px; color: var(--navy); margin-bottom: 6px; }
+    .auth-card p  { font-size: 13px; color: var(--muted); margin-bottom: 22px; }
+    .pwd-input {
+      width: 100%; border: 2px solid #dde3ec; border-radius: 50px;
+      padding: 12px 24px; font-size: 18px; text-align: center;
+      letter-spacing: 8px; outline: none; margin-bottom: 18px;
+      transition: border-color .2s;
+    }
+    .pwd-input:focus { border-color: var(--blue); }
+
+    .admin-header {
+      background: linear-gradient(135deg, #8e44ad, #9b59b6);
+      border-radius: var(--radius); padding: 18px 20px;
+      color: #fff; margin-bottom: 14px; box-shadow: var(--shadow);
+    }
+    .admin-header h2 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+    .admin-header p  { font-size: 12px; opacity: .8; }
+
+    .match-admin-card {
+      background: var(--card); border-radius: var(--radius);
+      padding: 12px 14px; margin-bottom: 10px; box-shadow: var(--shadow);
+    }
+    .match-admin-top {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+    }
+    .result-pill {
+      background: var(--navy); color: #fff; border-radius: 50px;
+      font-size: 11px; padding: 2px 10px; display: flex; align-items: center; gap: 5px;
+    }
+    .result-pill .clear-x {
+      cursor: pointer; opacity: .7; font-size: 12px;
+      transition: opacity .15s;
+    }
+    .result-pill .clear-x:hover { opacity: 1; }
+    .pending-pill {
+      background: #f0f0f0; color: #bbb; border-radius: 50px;
+      font-size: 11px; padding: 2px 10px;
+    }
+
+    .team-admin-row { display: flex; align-items: stretch; gap: 8px; }
+    .team-admin-btn {
+      flex: 1; display: flex; flex-direction: column; align-items: center;
+      padding: 10px 6px; border-radius: 10px;
+      background: #f5f7fa; border: 2px solid #e0e0e0;
+      cursor: pointer; transition: all .15s;
+    }
+    .team-admin-btn:hover { background: #eef2f8; }
+    .team-admin-btn.winner { background: #e8f5e9; border-color: var(--green); }
+    .team-admin-btn.loser  { opacity: .4; }
+    .team-admin-btn .aname { font-size: 14px; font-weight: 700; color: var(--navy); }
+    .team-admin-btn .wlabel{ font-size: 11px; color: var(--green); margin-top: 3px; }
+    .vs-admin {
+      font-size: 12px; font-weight: 800; color: var(--red);
+      background: #fef9e7; border-radius: 6px; padding: 3px 8px;
+      align-self: center; flex-shrink: 0;
+    }
+
+    .danger-zone { text-align: center; padding: 20px 0 10px; }
+    .btn-reset-all {
+      background: linear-gradient(135deg, #c0392b, var(--red));
+      color: #fff; border: none; border-radius: 50px;
+      font-size: 14px; font-weight: 600; padding: 12px 36px;
+      cursor: pointer; transition: opacity .15s;
+    }
+    .btn-reset-all:hover { opacity: .88; }
+
+    /* ===== Toast ===== */
+    #toast {
+      position: fixed; top: 70px; left: 50%; transform: translateX(-50%) translateY(-10px);
+      background: rgba(0,0,0,.75); color: #fff;
+      border-radius: 50px; padding: 9px 22px; font-size: 14px;
+      opacity: 0; pointer-events: none; transition: all .25s; z-index: 999;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ===== Modal ===== */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45);
+      z-index: 200; align-items: center; justify-content: center;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal-box {
+      background: #fff; border-radius: 18px; padding: 28px 24px;
+      width: 88%; max-width: 340px; text-align: center;
+      animation: popIn .2s ease;
+    }
+    @keyframes popIn { from { transform: scale(.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .modal-title { font-size: 17px; font-weight: 700; color: var(--navy); margin-bottom: 8px; }
+    .modal-msg   { font-size: 14px; color: #555; margin-bottom: 22px; line-height: 1.6; }
+    .modal-btns  { display: flex; gap: 10px; }
+    .modal-btns button { flex: 1; padding: 11px; border-radius: 50px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; }
+    .modal-cancel  { background: #f0f0f0; color: #555; }
+    .modal-confirm { background: linear-gradient(135deg, var(--navy), var(--blue)); color: #fff; }
+    .modal-confirm.danger { background: linear-gradient(135deg, #c0392b, var(--red)); }
+  </style>
 </head>
-
 <body>
-    <div class="center-container">
-        <a class="center-link" href="ailun.html">ailun</a>
+
+<!-- ===== 顶部导航 ===== -->
+<div class="topbar">
+  <div>
+    <div class="topbar-title">⚽ 世界杯16强竞猜</div>
+    <div class="topbar-sub" id="topbar-sub">猜对晋级方，积分最高者获胜</div>
+  </div>
+</div>
+
+<!-- ===== 页面内容 ===== -->
+
+<!-- 竞猜页 -->
+<div class="page active" id="page-guess">
+
+  <!-- 昵称设置（未设置时显示） -->
+  <div class="card nickname-card" id="nickname-section">
+    <div class="icon">⚽</div>
+    <h2>欢迎参与竞猜！</h2>
+    <p>请先设置你的昵称，最多8个字</p>
+    <div class="input-row">
+      <input id="nickname-input" type="text" maxlength="8" placeholder="输入昵称…" />
+      <button class="btn btn-primary" onclick="confirmNickname()">确认</button>
     </div>
+  </div>
 
-    <div class="center-container">
-        <a class="center-link" href="ForestKingdom-1.0-dists/ForestKingdom-1.0-web/index.html">forestkingdom</a>
+  <!-- 用户信息栏（已设置昵称后显示） -->
+  <div class="user-bar" id="user-bar" style="display:none">
+    <div>
+      <div class="user-hello" id="user-hello"></div>
+      <div class="user-meta" id="user-meta"></div>
     </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span id="submitted-tag"></span>
+      <div class="score-chip">
+        <span class="num" id="my-score">0</span>
+        <span class="unit">分</span>
+      </div>
+    </div>
+  </div>
 
-    <style>
-        .center-container {
-            display: flex;
-            justify-content: center;
-            /* 水平居中 */
-            align-items: center;
-            /* 垂直居中 */
-            height: 100vh;
-            /* 设置容器高度为视口高度 */
-        }
+  <div class="section-title" id="match-section-title" style="display:none">⚽ 16强 赛程竞猜</div>
 
-        .center-link {
-            text-decoration: none;
-            padding: 10px;
-            background-color: #f0f0f0;
-        }
-    </style>
+  <!-- 比赛列表 -->
+  <div id="match-list"></div>
 
+  <!-- 提交按钮 -->
+  <div class="submit-bar" id="submit-bar" style="display:none">
+    <button class="btn-submit-main btn-sub-blue" id="submit-btn" onclick="handleSubmit()">提交竞猜</button>
+  </div>
+</div>
 
+<!-- 排行榜页 -->
+<div class="page" id="page-rank">
+  <div class="rank-header">
+    <h2>🏆 积分排行榜</h2>
+    <p id="rank-sub-title">已揭晓 0 / 16 场结果</p>
+  </div>
+  <div id="rank-list"></div>
+</div>
 
+<!-- 管理页 -->
+<div class="page" id="page-admin">
+  <!-- 未验证 -->
+  <div class="card auth-card" id="auth-section">
+    <div class="auth-icon">🔐</div>
+    <h2>管理员验证</h2>
+    <p>请输入管理密码（默认：2026）</p>
+    <input class="pwd-input" id="pwd-input" type="password" maxlength="10" placeholder="••••" />
+    <button class="btn btn-primary" style="padding:12px 40px;font-size:15px" onclick="checkPwd()">进入管理</button>
+  </div>
+  <!-- 已验证 -->
+  <div id="admin-panel" style="display:none">
+    <div class="admin-header">
+      <h2>🛠 比赛结果管理</h2>
+      <p>点击队伍名称设置晋级方；再次点击已选队伍可切换</p>
+    </div>
+    <div id="admin-match-list"></div>
+    <div class="danger-zone">
+      <button class="btn-reset-all" onclick="confirmResetAll()">🗑 重置所有数据</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TabBar ===== -->
+<div class="tabbar">
+  <button class="tab-item active" id="tab-guess" onclick="switchTab('guess')">
+    <span class="tab-icon">⚽</span>
+    <span>竞猜</span>
+  </button>
+  <button class="tab-item" id="tab-rank" onclick="switchTab('rank')">
+    <span class="tab-icon">🏆</span>
+    <span>排行榜</span>
+  </button>
+  <button class="tab-item" id="tab-admin" onclick="switchTab('admin')">
+    <span class="tab-icon">⚙️</span>
+    <span>管理</span>
+  </button>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal-box">
+    <div class="modal-title" id="modal-title"></div>
+    <div class="modal-msg"   id="modal-msg"></div>
+    <div class="modal-btns">
+      <button class="modal-cancel"  onclick="closeModal()">取消</button>
+      <button class="modal-confirm" id="modal-confirm-btn">确定</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =============================================
+   数据层 — 使用 localStorage
+   ============================================= */
+const ADMIN_PWD = '2026';
+
+const DEFAULT_MATCHES = [
+  { id: 1,  teamA: '阿根廷',     teamB: '澳大利亚',   result: null },
+  { id: 2,  teamA: '法国',       teamB: '波兰',       result: null },
+  { id: 3,  teamA: '英格兰',     teamB: '塞内加尔',   result: null },
+  { id: 4,  teamA: '日本',       teamB: '克罗地亚',   result: null },
+  { id: 5,  teamA: '巴西',       teamB: '韩国',       result: null },
+  { id: 6,  teamA: '葡萄牙',     teamB: '瑞士',       result: null },
+  { id: 7,  teamA: '摩洛哥',     teamB: '西班牙',     result: null },
+  { id: 8,  teamA: '荷兰',       teamB: '美国',       result: null },
+  { id: 9,  teamA: '德国',       teamB: '哥斯达黎加', result: null },
+  { id: 10, teamA: '塞尔维亚',   teamB: '喀麦隆',     result: null },
+  { id: 11, teamA: '比利时',     teamB: '加拿大',     result: null },
+  { id: 12, teamA: '乌拉圭',     teamB: '加纳',       result: null },
+  { id: 13, teamA: '丹麦',       teamB: '突尼斯',     result: null },
+  { id: 14, teamA: '墨西哥',     teamB: '沙特阿拉伯', result: null },
+  { id: 15, teamA: '瑞士',       teamB: '厄瓜多尔',   result: null },
+  { id: 16, teamA: '波兰',       teamB: '澳大利亚',   result: null },
+];
+
+function getMatches()   { return JSON.parse(localStorage.getItem('wc_matches') || 'null') || JSON.parse(JSON.stringify(DEFAULT_MATCHES)); }
+function saveMatches(m) { localStorage.setItem('wc_matches', JSON.stringify(m)); }
+function getUsers()     { return JSON.parse(localStorage.getItem('wc_users') || '[]'); }
+function saveUsers(u)   { localStorage.setItem('wc_users', JSON.stringify(u)); }
+function getMyNick()    { return localStorage.getItem('wc_nick') || ''; }
+function saveMyNick(n)  { localStorage.setItem('wc_nick', n); }
+function getMyGuesses() { return JSON.parse(localStorage.getItem('wc_guesses') || '{}'); }
+function saveMyGuesses(g){ localStorage.setItem('wc_guesses', JSON.stringify(g)); }
+function isSubmitted()  { return localStorage.getItem('wc_submitted') === '1'; }
+function setSubmitted(v){ localStorage.setItem('wc_submitted', v ? '1' : '0'); }
+
+/* =============================================
+   UI 工具
+   ============================================= */
+let toastTimer = null;
+function toast(msg, duration = 1800) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), duration);
+}
+
+let modalCallback = null;
+function showModal(title, msg, danger = false, cb) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-msg').textContent   = msg;
+  const btn = document.getElementById('modal-confirm-btn');
+  btn.className = 'modal-confirm' + (danger ? ' danger' : '');
+  modalCallback = cb;
+  document.getElementById('modal').classList.add('show');
+}
+function closeModal() { document.getElementById('modal').classList.remove('show'); }
+document.getElementById('modal-confirm-btn').onclick = () => {
+  closeModal();
+  if (modalCallback) modalCallback();
+};
+
+/* =============================================
+   Tab 切换
+   ============================================= */
+let currentTab = 'guess';
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + tab).classList.add('active');
+  document.getElementById('tab-' + tab).classList.add('active');
+
+  if (tab === 'guess') renderGuess();
+  if (tab === 'rank')  renderRank();
+  if (tab === 'admin' && document.getElementById('admin-panel').style.display !== 'none') renderAdmin();
+}
+
+/* =============================================
+   竞猜页
+   ============================================= */
+function renderGuess() {
+  const nick      = getMyNick();
+  const matches   = getMatches();
+  const guesses   = getMyGuesses();
+  const submitted = isSubmitted();
+
+  if (!nick) {
+    document.getElementById('nickname-section').style.display = '';
+    document.getElementById('user-bar').style.display         = 'none';
+    document.getElementById('match-section-title').style.display = 'none';
+    document.getElementById('submit-bar').style.display       = 'none';
+    document.getElementById('match-list').innerHTML = '';
+    return;
+  }
+
+  document.getElementById('nickname-section').style.display = 'none';
+  document.getElementById('user-bar').style.display         = '';
+  document.getElementById('match-section-title').style.display = '';
+  document.getElementById('submit-bar').style.display       = '';
+
+  // 得分统计
+  let score = 0, finished = 0;
+  matches.forEach(m => { if (m.result) { finished++; if (guesses[m.id] === m.result) score++; } });
+
+  document.getElementById('user-hello').textContent = `👋 ${nick}，来竞猜吧！`;
+  document.getElementById('user-meta').textContent  = `已出结果 ${finished}/16 场`;
+  document.getElementById('my-score').textContent   = score;
+  document.getElementById('submitted-tag').innerHTML = submitted
+    ? `<span class="tag-submitted">✅ 已提交</span>`
+    : `<span class="tag-draft">📝 草稿</span>`;
+
+  const btn = document.getElementById('submit-btn');
+  btn.textContent  = submitted ? '重新竞猜' : '提交竞猜';
+  btn.className    = 'btn-submit-main ' + (submitted ? 'btn-sub-gray' : 'btn-sub-blue');
+
+  // 比赛列表
+  const list = document.getElementById('match-list');
+  list.innerHTML = matches.map(m => {
+    const gA = guesses[m.id] === 'A', gB = guesses[m.id] === 'B';
+    const correct = m.result && guesses[m.id] === m.result;
+    const wrong   = m.result && guesses[m.id] && guesses[m.id] !== m.result;
+    const missed  = m.result && !guesses[m.id];
+
+    const clsA = [gA ? 'sel' : '', m.result === 'A' ? 'win' : m.result === 'B' ? 'lose' : ''].filter(Boolean).join(' ');
+    const clsB = [gB ? 'sel' : '', m.result === 'B' ? 'win' : m.result === 'A' ? 'lose' : ''].filter(Boolean).join(' ');
+
+    const resultChip = m.result
+      ? `<span class="result-chip">已揭晓：${m.result === 'A' ? m.teamA : m.teamB} 晋级</span>`
+      : `<span class="pending-chip">待揭晓</span>`;
+
+    const guessHint = correct ? `<div class="guess-result guess-correct">🎉 猜对了！+1分</div>`
+                    : wrong   ? `<div class="guess-result guess-wrong">😢 猜错了</div>`
+                    : missed  ? `<div class="guess-result guess-miss">⚠️ 未竞猜此场</div>`
+                    : '';
+
+    return `
+    <div class="match-card ${guesses[m.id] ? 'picked' : ''} ${m.result ? 'finished' : ''}">
+      <div class="match-header">
+        <span class="match-no">第 ${m.id} 场</span>
+        ${resultChip}
+      </div>
+      <div class="team-row">
+        <div class="team-btn ${clsA}" onclick="pickWinner(${m.id}, 'A')">
+          <span class="flag">🏴</span>
+          <span class="name">${m.teamA}</span>
+          ${gA ? '<span class="check">✓</span>' : ''}
+        </div>
+        <div class="vs-badge">VS</div>
+        <div class="team-btn ${clsB}" onclick="pickWinner(${m.id}, 'B')">
+          <span class="flag">🏴</span>
+          <span class="name">${m.teamB}</span>
+          ${gB ? '<span class="check">✓</span>' : ''}
+        </div>
+      </div>
+      ${guessHint}
+    </div>`;
+  }).join('');
+}
+
+function confirmNickname() {
+  const val = document.getElementById('nickname-input').value.trim();
+  if (!val) { toast('请输入昵称'); return; }
+  saveMyNick(val);
+  renderGuess();
+}
+document.getElementById('nickname-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') confirmNickname();
+});
+
+function pickWinner(matchId, winner) {
+  if (isSubmitted()) { toast('已提交，不能修改'); return; }
+  const guesses = getMyGuesses();
+  guesses[matchId] = guesses[matchId] === winner ? undefined : winner; // 再次点击可取消
+  if (!guesses[matchId]) delete guesses[matchId];
+  saveMyGuesses(guesses);
+  renderGuess();
+}
+
+function handleSubmit() {
+  if (isSubmitted()) {
+    showModal('重新竞猜', '重置后可重新修改竞猜，确定吗？', false, () => {
+      setSubmitted(false);
+      renderGuess();
+    });
+    return;
+  }
+  const nick    = getMyNick();
+  const matches = getMatches();
+  const guesses = getMyGuesses();
+  const unpicked = matches.filter(m => !guesses[m.id]).length;
+
+  const doSubmit = () => {
+    let users = getUsers();
+    const idx = users.findIndex(u => u.nickname === nick);
+    const rec = { nickname: nick, guesses };
+    if (idx >= 0) users[idx] = rec; else users.push(rec);
+    saveUsers(users);
+    setSubmitted(true);
+    toast('🎉 提交成功！');
+    renderGuess();
+  };
+
+  if (unpicked > 0) {
+    showModal('确认提交', `还有 ${unpicked} 场未竞猜，确定提交吗？`, false, doSubmit);
+  } else {
+    doSubmit();
+  }
+}
+
+/* =============================================
+   排行榜
+   ============================================= */
+function renderRank() {
+  const matches  = getMatches();
+  const users    = getUsers();
+  const myNick   = getMyNick();
+  const finished = matches.filter(m => m.result);
+
+  document.getElementById('rank-sub-title').textContent = `已揭晓 ${finished.length} / 16 场结果`;
+
+  if (users.length === 0) {
+    document.getElementById('rank-list').innerHTML = `
+      <div class="empty-state">
+        <span class="eicon">😶</span>
+        <p>还没有人参与竞猜</p>
+      </div>`;
+    return;
+  }
+
+  const ranked = users.map(u => {
+    let score = 0;
+    finished.forEach(m => { if (u.guesses && u.guesses[m.id] === m.result) score++; });
+    return { ...u, score };
+  }).sort((a, b) => b.score !== a.score ? b.score - a.score : a.nickname.localeCompare(b.nickname));
+
+  // 计算名次（同分并列）
+  let rank = 1;
+  ranked.forEach((item, i) => {
+    if (i > 0 && item.score < ranked[i - 1].score) rank = i + 1;
+    item.rank = rank;
+  });
+
+  document.getElementById('rank-list').innerHTML = ranked.map(item => {
+    const medal = item.rank === 1 ? '🥇' : item.rank === 2 ? '🥈' : item.rank === 3 ? '🥉' : item.rank;
+    const badgeCls = item.rank <= 3 ? `r${item.rank}` : 'rn';
+    const isMe = item.nickname === myNick;
+    return `
+    <div class="rank-item ${isMe ? 'me' : ''}">
+      <div class="rank-badge ${badgeCls}">${medal}</div>
+      <div class="rank-name">
+        <span class="rank-nick">${item.nickname}</span>
+        ${isMe ? '<span class="rank-me-tag">（我）</span>' : ''}
+      </div>
+      <div class="rank-score">
+        <span class="big">${item.score}</span>
+        <span class="deno"> / ${finished.length}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* =============================================
+   管理页
+   ============================================= */
+function checkPwd() {
+  const val = document.getElementById('pwd-input').value;
+  if (val === ADMIN_PWD) {
+    document.getElementById('auth-section').style.display  = 'none';
+    document.getElementById('admin-panel').style.display   = '';
+    renderAdmin();
+  } else {
+    toast('密码错误 ❌');
+    document.getElementById('pwd-input').value = '';
+  }
+}
+document.getElementById('pwd-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') checkPwd();
+});
+
+function renderAdmin() {
+  const matches = getMatches();
+  document.getElementById('admin-match-list').innerHTML = matches.map(m => {
+    const clsA  = m.result === 'A' ? 'winner' : m.result === 'B' ? 'loser' : '';
+    const clsB  = m.result === 'B' ? 'winner' : m.result === 'A' ? 'loser' : '';
+    const chips = m.result
+      ? `<div class="result-pill">
+           已揭晓：${m.result === 'A' ? m.teamA : m.teamB} 晋级
+           <span class="clear-x" onclick="adminClear(${m.id})">✕</span>
+         </div>`
+      : `<span class="pending-pill">待揭晓</span>`;
+    return `
+    <div class="match-admin-card">
+      <div class="match-admin-top">
+        <span class="match-no" style="color:#999;font-size:12px">第 ${m.id} 场</span>
+        ${chips}
+      </div>
+      <div class="team-admin-row">
+        <div class="team-admin-btn ${clsA}" onclick="adminSetResult(${m.id}, 'A')">
+          <span class="aname">${m.teamA}</span>
+          ${m.result === 'A' ? '<span class="wlabel">晋级 ✓</span>' : ''}
+        </div>
+        <div class="vs-admin">VS</div>
+        <div class="team-admin-btn ${clsB}" onclick="adminSetResult(${m.id}, 'B')">
+          <span class="aname">${m.teamB}</span>
+          ${m.result === 'B' ? '<span class="wlabel">晋级 ✓</span>' : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function adminSetResult(matchId, winner) {
+  const matches = getMatches().map(m => m.id === matchId ? { ...m, result: winner } : m);
+  saveMatches(matches);
+  toast('✅ 结果已保存');
+  renderAdmin();
+}
+
+function adminClear(matchId) {
+  const matches = getMatches().map(m => m.id === matchId ? { ...m, result: null } : m);
+  saveMatches(matches);
+  renderAdmin();
+}
+
+function confirmResetAll() {
+  showModal('⚠️ 危险操作', '将清除所有比赛结果和用户数据，确定吗？此操作不可恢复！', true, () => {
+    saveMatches(JSON.parse(JSON.stringify(DEFAULT_MATCHES)));
+    saveUsers([]);
+    saveMyGuesses({});
+    setSubmitted(false);
+    localStorage.removeItem('wc_nick');
+    toast('已全部重置');
+    renderAdmin();
+    // 如果在猜测页，也刷新
+    if (currentTab === 'guess') renderGuess();
+  });
+}
+
+/* =============================================
+   初始化
+   ============================================= */
+renderGuess();
+</script>
 </body>
-
 </html>
